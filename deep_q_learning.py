@@ -93,7 +93,7 @@ def Q_learning(num_episodes=10000, gamma=0.9, epsilon=1, alpha=0.01, decay_rate=
             
 
         lengths.append(len(episode_reward))
-        epsilon *= decay_rate
+        epsilon = max(0.1, epsilon*decay_rate)
         rewards.append(np.sum(episode_reward))
         pbar.set_description(f"Reward: {rewards[-1]:.3f}, epsilon: {epsilon:.3f}")
         
@@ -104,14 +104,15 @@ def Q_learning(num_episodes=10000, gamma=0.9, epsilon=1, alpha=0.01, decay_rate=
 
     # Save rewards and episode lengths for later plotting
     pickle.dump({"rewards": rewards, "episode_lengths": lengths}, open("training_history.pkl", "wb"))
-
+    torch.save(model.state_dict(), "last_model.pt")
+    
     print(epsilon)
     return rewards, lengths
 
 
-decay_rate = 0.999
+decay_rate = 0.995
 
-rewards, lengths = Q_table = Q_learning(num_episodes=1500, gamma=0.9, epsilon=1, alpha=0.0001, decay_rate=decay_rate, minibatch_size=64)  # Run Q-learning
+rewards, lengths = Q_table = Q_learning(num_episodes=1200, gamma=0.99, epsilon=1, alpha=0.0001, decay_rate=decay_rate, minibatch_size=64)  # Run Q-learning
 plt.figure()
 plt.plot(rewards)
 plt.savefig("rewards.png")
