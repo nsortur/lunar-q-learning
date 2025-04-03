@@ -8,6 +8,12 @@ class DeepQ(nn.Module):
         self.network = nn.Sequential(
             nn.Linear(in_dim, hidden_neurons),
             nn.ReLU(),
+            nn.Linear(hidden_neurons, hidden_neurons),
+            nn.ReLU(),
+            nn.Linear(hidden_neurons, hidden_neurons),
+            nn.ReLU(),
+            nn.Linear(hidden_neurons, hidden_neurons),
+            nn.ReLU(),
             nn.Linear(hidden_neurons, num_actions),
         )
         
