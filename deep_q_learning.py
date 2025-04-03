@@ -8,12 +8,11 @@ import matplotlib.pyplot as plt
 from tqdm import tqdm
 from torchrl.data import ReplayBuffer
 from torch.nn import MSELoss
-
+import pickle
 
 env = gym.make("LunarLander-v3", continuous=False, gravity=-10.0,
                enable_wind=False, wind_power=15.0, turbulence_power=1.5)
 
-# device = 'cuda' if torch.cuda.is_available() else 'mps' if torch.backends.mps.is_available() else 'cpu'
 device = 'cpu'
 
 
@@ -37,15 +36,18 @@ def Q_learning(num_episodes=10000, gamma=0.9, epsilon=1, alpha=0.01, decay_rate=
                 torch.tensor([done_val]),
                 torch.tensor(next_state)
         ]))
-
-    done = False
+    
     rewards = []
+    lengths = []
+    best_reward = -np.inf 
     step_counter = 0
-    for _ in tqdm(range(num_episodes)):
+    pbar = tqdm(range(num_episodes))
+    for episode in pbar:
         done = False
+        truncated = False
         obs, info = env.reset()
         episode_reward = []
-        while not done or truncated:
+        while not (done or truncated):
             
             q_vals = model(torch.tensor(obs, device=device).float())
 
@@ -57,7 +59,6 @@ def Q_learning(num_episodes=10000, gamma=0.9, epsilon=1, alpha=0.01, decay_rate=
                 action = torch.argmax(q_vals).cpu().item()
             
             obs_next, reward, done, truncated, info = env.step(action)
-            # print(reward)
             episode_reward.append(reward)
             
             add_to_buffer(obs, action, reward, obs_next, done)
@@ -71,18 +72,11 @@ def Q_learning(num_episodes=10000, gamma=0.9, epsilon=1, alpha=0.01, decay_rate=
             obs_next_buffer = samp[:, 11:]
             action_buffer = samp[:, 8]
             
-            # same q and q target           
-            # q_val_next = model(torch.tensor(obs_next_buffer, device=device).float())
-            # q_target = (reward_buffer + (gamma * torch.max(q_val_next)))
-            
             # q target network
             q_val_next = target_model(obs_next_buffer.to(device).float())
             max_q_val_next, _ = torch.max(q_val_next, dim=1)
             q_target = (reward_buffer + (gamma * max_q_val_next * (1 - done_buffer.float())))
             q_target = q_target.unsqueeze(1)
-            
-            # env.render()
-            # time.sleep(0.1)
             
             q_val_obs = model(obs_buffer.to(device).float())
             q_val_action = torch.gather(q_val_obs, 1, action_buffer.type(torch.int64).unsqueeze(1)) # now (8 x 1)
@@ -98,16 +92,30 @@ def Q_learning(num_episodes=10000, gamma=0.9, epsilon=1, alpha=0.01, decay_rate=
                 target_model.load_state_dict(model.state_dict())
             
 
+        lengths.append(len(episode_reward))
         epsilon *= decay_rate
         rewards.append(np.sum(episode_reward))
+        pbar.set_description(f"Reward: {rewards[-1]:.3f}, epsilon: {epsilon:.3f}")
+        
+        # Save best model
+        if rewards[-1] > best_reward:
+            best_reward = rewards[-1]
+            torch.save(model.state_dict(), "best_model.pt")
+
+    # Save rewards and episode lengths for later plotting
+    pickle.dump({"rewards": rewards, "episode_lengths": lengths}, open("training_history.pkl", "wb"))
 
     print(epsilon)
-    return rewards
+    return rewards, lengths
 
 
-decay_rate = 0.999
+decay_rate = 0.9995
 
-# default: Q_table = Q_learning(num_episodes=1000000, gamma=0.9, epsilon=1, decay_rate=decay_rate)
-rewards = Q_table = Q_learning(num_episodes=2000, gamma=0.9, epsilon=1, alpha=0.01, decay_rate=decay_rate, minibatch_size=64)  # Run Q-learning
+rewards, lengths = Q_table = Q_learning(num_episodes=1500, gamma=0.9, epsilon=1, alpha=0.0001, decay_rate=decay_rate, minibatch_size=64)  # Run Q-learning
+plt.figure()
 plt.plot(rewards)
 plt.savefig("rewards.png")
+
+plt.figure()
+plt.plot(lengths)
+plt.savefig("lengths.png")
