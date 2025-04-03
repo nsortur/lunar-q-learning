@@ -13,7 +13,7 @@ import pickle
 env = gym.make("LunarLander-v3", continuous=False, gravity=-10.0,
                enable_wind=False, wind_power=15.0, turbulence_power=1.5)
 
-device = 'cpu'
+device = 'cuda'
 
 
 def Q_learning(num_episodes=10000, gamma=0.9, epsilon=1, alpha=0.01, decay_rate=0.999, minibatch_size=8, target_update_freq=50):
@@ -66,11 +66,11 @@ def Q_learning(num_episodes=10000, gamma=0.9, epsilon=1, alpha=0.01, decay_rate=
             
             samp = buffer.sample(minibatch_size)  # (8 x 18)
             
-            obs_buffer = samp[:, :8]
-            reward_buffer = samp[:, 9] # (8 x 1)
-            done_buffer = samp[:, 10]
-            obs_next_buffer = samp[:, 11:]
-            action_buffer = samp[:, 8]
+            obs_buffer = samp[:, :8].to(device)
+            reward_buffer = samp[:, 9].to(device) # (8 x 1)
+            done_buffer = samp[:, 10].to(device)
+            obs_next_buffer = samp[:, 11:].to(device)
+            action_buffer = samp[:, 8].to(device)
             
             # q target network
             q_val_next = target_model(obs_next_buffer.to(device).float())
@@ -109,7 +109,7 @@ def Q_learning(num_episodes=10000, gamma=0.9, epsilon=1, alpha=0.01, decay_rate=
     return rewards, lengths
 
 
-decay_rate = 0.9995
+decay_rate = 0.999
 
 rewards, lengths = Q_table = Q_learning(num_episodes=1500, gamma=0.9, epsilon=1, alpha=0.0001, decay_rate=decay_rate, minibatch_size=64)  # Run Q-learning
 plt.figure()
