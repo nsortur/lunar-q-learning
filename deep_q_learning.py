@@ -141,7 +141,7 @@ if __name__ == "__main__":
         parser.add_argument('--alpha', type=float, default=0.0001, help='Learning rate')
         parser.add_argument('--decay_rate', type=float, default=0.995, help='Epsilon decay rate')
         parser.add_argument('--minibatch_size', type=int, default=64, help='Minibatch size (only used for dqn_replay)')
-        parser.add_argument('--target_update_freq', type=int, default=50, help='Frequency of target network updates')
+        parser.add_argument('--target_update_freq', type=int, default=30, help='Frequency of target network updates')
         parser.add_argument('--buffer_storage', type=int, default=10000,
                     help='Number of experiences to store in the replay buffer')
         parser.add_argument('--continuous', action='store_true',

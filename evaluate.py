@@ -21,7 +21,6 @@ def save_new_history(env, num_episodes=20, history_file="evaluation_history.pkl"
             state_tensor = torch.tensor(state, device=device).float()
             with torch.no_grad():
                 action_index = torch.argmax(model(state_tensor)).cpu().item()
-                # If using continuous actions, map the index to the corresponding continuous action.
                 if continuous:
                     action = action_mapping[action_index]
                 else:
@@ -80,15 +79,17 @@ def visualize_policy(model, episode, max_steps=200):
 
 if __name__ == "__main__":
     
-
-    continuous = True
-    fidelity = 10
-    action_mapping = build_action_mapping(fidelity)
-    num_actions = len(action_mapping)
+    # uncomment block if using continuous
+    # continuous = True
+    # fidelity = 10
+    # action_mapping = build_action_mapping(fidelity)
+    # num_actions = len(action_mapping)
     
-    # continuous=False
-    # action_mapping=None
-    # num_actions = 4
+    
+    # comment block if using continuous
+    continuous=False
+    action_mapping=None
+    num_actions = 4
     
     model = DeepQ(in_dim=8, hidden_neurons=256, num_actions=num_actions).to(device)
     model.load_state_dict(torch.load("best_model.pt", map_location=device))
